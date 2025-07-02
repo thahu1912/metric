@@ -88,7 +88,7 @@ def main(
 
     # setup logger
     os.makedirs("../logs", exist_ok=True)
-    logger = WandbLogger(save_dir=f"../logs", name=name, entity="laplace-metric-learning")
+    logger = WandbLogger(save_dir=f"../logs", name=name, entity=None)
 
     # lightning trainer
     checkpoint_callback = ModelCheckpoint(
