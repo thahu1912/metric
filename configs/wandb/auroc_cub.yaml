@@ -1,0 +1,18 @@
+program: sweep.py
+method: bayes
+name: "cub200_auroc_sweep"
+metric:
+  name: test_metric/auroc
+  goal: maximize
+parameters:
+  hessian_memory_factor:
+    min: 0.999
+    max: 0.9999999
+  type_of_triplets:
+    values: ["hard", "semihard", "all"]
+  type_of_triplets_hessian:
+    values: ["hard", "semihard", "all"]
+  max_pairs:
+    values: [5, 30]
+  config: 
+    value: '../configs/cub200/laplace_online_arccos_fix.yaml'

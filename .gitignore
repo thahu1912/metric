@@ -1,0 +1,16 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# folder specific
+lightning_logs/
+logs/
+bsub_logs/
+results/
+# notebooks/
+data/
+metric_learning/
+.env
+
+# IDE
+.vscode/
+.idea/
