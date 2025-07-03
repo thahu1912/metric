@@ -24,7 +24,7 @@ margin : 1
 distance : "euclidean"
 varPrior : 0.01
 distribution : "gauss"
-
+kl_scale_factor: 1e-6
 
 # data specific
 data_dir : "/content/data"

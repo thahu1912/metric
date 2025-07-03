@@ -146,5 +146,91 @@ def l2n(x, eps=1e-6):
 
 
 def powerlaw(x, eps=1e-6):
-    x = x + self.eps
+    x = x + eps
     return x.abs().sqrt().mul(x.sign())
+
+
+# --------------------------------------
+# Bayesian loss functions
+# --------------------------------------
+
+
+def negative_loglikelihood(muA, muP, muN, varA, varP, varN, margin=0.3):
+    """
+    Compute the negative log-likelihood for Bayesian triplet loss
+    """
+    # Ensure variances are positive and not too small
+    eps = 1e-8
+    varA = torch.clamp(varA, min=eps)
+    varP = torch.clamp(varP, min=eps)
+    varN = torch.clamp(varN, min=eps)
+    
+    dist_ap = torch.sum((muA - muP) ** 2, dim=0)
+    dist_an = torch.sum((muA - muN) ** 2, dim=0)
+    
+    # Add variance terms
+    var_ap = torch.sum(varA + varP, dim=0)
+    var_an = torch.sum(varA + varN, dim=0)
+    
+    # Ensure variance terms are positive
+    var_ap = torch.clamp(var_ap, min=eps)
+    var_an = torch.clamp(var_an, min=eps)
+    
+    # Compute log-likelihood with numerical stability
+    log_likelihood = -0.5 * (dist_ap / var_ap + torch.log(var_ap) + 
+                            dist_an / var_an + torch.log(var_an))
+    
+    # Add margin term
+    loss = torch.clamp(dist_ap - dist_an + margin, min=0.0)
+    
+    total_loss = -log_likelihood + loss
+    
+    # Check for NaN and replace with finite values
+    if torch.isnan(total_loss).any():
+        print(f"Warning: NaN detected in loss. dist_ap: {dist_ap}, dist_an: {dist_an}, var_ap: {var_ap}, var_an: {var_an}")
+        total_loss = torch.where(torch.isnan(total_loss), torch.tensor(0.0, device=total_loss.device), total_loss)
+    
+    return total_loss.mean()
+
+
+def kl_div_gauss(mu1, var1, mu2, var2):
+    """
+    Compute KL divergence between two Gaussian distributions
+    """
+    eps = 1e-8
+    var1 = torch.clamp(var1, min=eps)
+    var2 = torch.clamp(var2, min=eps)
+    
+    kl = 0.5 * torch.sum(var1 / var2 + (mu1 - mu2) ** 2 / var2 - 1 - torch.log(var1 / var2))
+    
+    # Check for NaN and replace with finite values
+    if torch.isnan(kl):
+        print(f"Warning: NaN detected in KL divergence. var1: {var1}, var2: {var2}")
+        kl = torch.tensor(0.0, device=kl.device)
+    
+    return kl
+
+
+def kl_div_vMF(mu, var):
+    """
+    Compute KL divergence for von Mises-Fisher distribution
+    """
+    # For vMF, we assume mu is normalized and var is the concentration parameter
+    eps = 1e-8
+    kappa = torch.clamp(var, min=eps)
+    d = mu.size(0)
+    
+    # Compute Bessel function ratio with numerical stability
+    bessel_ratio = torch.sqrt(1 + 4 * kappa ** 2) / (2 * kappa)
+    
+    # Compute KL divergence
+    two_pi = torch.tensor(2 * math.pi, device=kappa.device)
+    kl = kappa * bessel_ratio + (d/2 - 1) * torch.log(kappa) - \
+         (d/2) * torch.log(two_pi) - torch.log(bessel_ratio)
+    
+    # Check for NaN and replace with finite values
+    if torch.isnan(kl):
+        print(f"Warning: NaN detected in vMF KL divergence. kappa: {kappa}")
+        kl = torch.tensor(0.0, device=kl.device)
+    
+    return kl
