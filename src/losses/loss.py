@@ -1,7 +1,8 @@
+from losses.bayesian_loss import BayesianTripletLoss
 from pytorch_metric_learning import losses, distances
 
 
-def configure_metric_loss(loss, distance, margin):
+def configure_metric_loss(loss, distance, margin, varPrior, distribution):
 
     if distance == "cosine":
         dist = distances.CosineSimilarity()
@@ -17,6 +18,10 @@ def configure_metric_loss(loss, distance, margin):
         criterion = losses.ContrastiveLoss(
             pos_margin=pos_margin, neg_margin=neg_margin, distance=dist
         )
+
+    elif loss == "bayesian":
+        criterion = BayesianTripletLoss(margin=margin, varPrior=varPrior, distribution=distribution)
+
     else:
         raise NotImplementedError
 

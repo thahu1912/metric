@@ -1,6 +1,5 @@
 import os
 
-import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 
@@ -97,40 +96,19 @@ class ImageRetrievalNet(nn.Module):
         super(ImageRetrievalNet, self).__init__()
 
         self.backbone = nn.Sequential(*features)
-        
-        # Mean head
-        self.mean_pool = nn.Sequential(*[pool, nn.Flatten()])
-        self.mean_head = nn.Sequential(
-            whiten,
-            nn.Linear(meta["outputdim"], meta["outputdim"] - 1),
-            L2Norm()
-        )
-        
-        # Variance head
-        self.var_pool = nn.Sequential(*[pool, nn.Flatten()])
-        self.var_head = nn.Sequential(
-            nn.Linear(meta["outputdim"], 1),
-            nn.Softplus()
-        )
+        #self.pool = nn.Sequential(*[pool, L2Norm(), nn.Flatten()])
+        self.pool = nn.Sequential(*[pool, nn.Flatten()])
+        self.linear = nn.Sequential(whiten, L2Norm())
 
         self.meta = meta
 
     def forward(self, x, n_samples=1):
-        # Extract features from backbone
-        x = self.backbone(x)
-        
-        # Get mean embeddings
-        x_mean = self.mean_pool(x)
-        z_mu = self.mean_head(x_mean)
-        
-        # Get variance (isotropic Gaussian)
-        x_var = self.var_pool(x)
-        z_var = self.var_head(x_var)
-        
-        # Concatenate mean and variance
-        z = torch.cat([z_mu, z_var], dim=1)
 
-        return {"z_mu": z}
+        x = self.backbone(x)
+        x = self.pool(x)
+        x = self.linear(x)
+
+        return {"z_mu": x}
 
     def __repr__(self):
         tmpstr = super(ImageRetrievalNet, self).__repr__()[:-1]
