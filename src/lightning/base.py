@@ -43,6 +43,8 @@ class Base(pl.LightningModule):
         margin = args.get("margin", 0.7)
         loss = args.get("loss", "contrastive")
         type_of_triplets = args.get("type_of_triplets", "semihard")
+        varPrior = args.get("varPrior", 1.0)
+        distribution = args.get("distribution", "gauss")
 
         ### pytorch-metric-learning stuff ###
         if distance == "cosine":
@@ -50,7 +52,7 @@ class Base(pl.LightningModule):
         elif distance == "euclidean":
             self.distance = distances.LpDistance()
 
-        self.criterion = configure_metric_loss(loss, distance, margin)
+        self.criterion = configure_metric_loss(loss, distance, margin, varPrior, distribution)
 
         self.place_rec = args.dataset in ("dag", "msls")
         self.face_rec = args.dataset in ("lfw")

@@ -52,12 +52,12 @@ def kl_div_vMF(mu, var):
 
 
 class BayesianTripletLoss(nn.Module):
-    def __init__(self, margin, varPrior, kl_scale_factor=1e-6, distribution='gauss'):
+    def __init__(self, margin, varPrior, distribution='gauss'):
         super(BayesianTripletLoss, self).__init__()
         
         self.margin = margin
         self.varPrior = varPrior
-        self.kl_scale_factor = kl_scale_factor
+        self.kl_scale_factor = 1e-6  # Fixed default value
         self.distribution = distribution
 
     def forward(self, x, label):

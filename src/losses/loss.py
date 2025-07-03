@@ -2,12 +2,14 @@ from losses.bayesian_loss import BayesianTripletLoss
 from pytorch_metric_learning import losses, distances
 
 
-def configure_metric_loss(loss, distance, margin, varPrior, distribution):
+def configure_metric_loss(loss, distance, margin, varPrior=1.0, distribution='gauss'):
 
     if distance == "cosine":
         dist = distances.CosineSimilarity()
     elif distance == "euclidean":
         dist = distances.LpDistance()
+    else:
+        raise ValueError(f"Unsupported distance: {distance}")
 
     if loss == "triplet":
         criterion = losses.TripletMarginLoss(margin=margin, distance=dist)
@@ -23,6 +25,6 @@ def configure_metric_loss(loss, distance, margin, varPrior, distribution):
         criterion = BayesianTripletLoss(margin=margin, varPrior=varPrior, distribution=distribution)
 
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"Unsupported loss: {loss}")
 
     return criterion
