@@ -60,27 +60,34 @@ class BayesianTripletLoss(nn.Module):
         self.kl_scale_factor = 1e-6  # Fixed default value
         self.distribution = distribution
 
-    def forward(self, x, label):
-        # divide x into anchor, positive, negative based on labels
-        D, N = x.shape
-        nq = torch.sum(label.data == -1).item()  # number of tuples
-        S = x.size(1) // nq  # number of images per tuple including query: 1+1+n
-        A = x[:, label.data == -1].permute(1, 0).repeat(1, S - 2).view((S - 2) * nq, D).permute(1, 0)
-        P = x[:, label.data == 1].permute(1, 0).repeat(1, S - 2).view((S - 2) * nq, D).permute(1, 0)
-        N = x[:, label.data == 0]
-
-        varA = A[-1:, :]
-        varP = P[-1:, :]
-        varN = N[-1:, :]
-
-        muA = A[:-1, :]
-        muP = P[:-1, :]
-        muN = N[:-1, :]
+    def forward(self, embeddings, labels, indices_tuple):
+        # Extract anchor, positive, negative indices from indices_tuple
+        if len(indices_tuple) == 3:
+            a, p, n = indices_tuple
+        elif len(indices_tuple) == 4:
+            a, p, _, n = indices_tuple
+        else:
+            raise ValueError(f"Expected indices_tuple of length 3 or 4, got {len(indices_tuple)}")
+        
+        # Extract mean and variance from embeddings
+        # Assuming embeddings are in format [mean_features, variance]
+        D = embeddings.shape[1] - 1  # -1 for variance dimension
+        mu = embeddings[:, :D]  # mean embeddings
+        var = embeddings[:, D:]  # variance (isotropic)
+        
+        # Get anchor, positive, negative embeddings
+        muA = mu[a]
+        muP = mu[p] 
+        muN = mu[n]
+        
+        varA = var[a]
+        varP = var[p]
+        varN = var[n]
 
         # calculate nll
         nll = negative_loglikelihood(muA, muP, muN, varA, varP, varN, margin=self.margin)
 
-        kl = torch.tensor(0.0, device=x.device)
+        kl = torch.tensor(0.0, device=embeddings.device)
 
         # KL(anchor|| prior) + KL(positive|| prior) + KL(negative|| prior)
         if self.distribution == 'gauss':
